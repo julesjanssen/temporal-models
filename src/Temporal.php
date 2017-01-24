@@ -29,12 +29,12 @@ trait Temporal
      */
     public static function registerEvents()
     {
-        static::creating(function ($item) {
-            $item->startCannotBeInThePast();
-            $item->endCurrent();
-        });
-
         static::saving(function ($item) {
+            if (! $item->exists) {
+                $item->startCannotBeInThePast();
+                $item->endCurrent();
+            }
+
             $item->startCannotBeAfterEnd();
             $item->removeSchedulingConflicts();
         });
@@ -72,6 +72,10 @@ trait Temporal
      */
     protected function startCannotBeInThePast()
     {
+        if (is_null($this->valid_start)) {
+            $this->valid_start = Carbon::now();
+        }
+
         if ($this->valid_start < Carbon::now()->subSeconds(5)) {
             throw new InvalidDateRangeException;
         }
